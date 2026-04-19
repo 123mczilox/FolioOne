@@ -1,42 +1,100 @@
 <?php
-  /**
-  * Requires the "PHP Email Form" library
-  * The "PHP Email Form" library is available only in the pro version of the template
-  * The library should be uploaded to: vendor/php-email-form/php-email-form.php
-  * For more info and help: https://bootstrapmade.com/php-email-form/
-  */
+// Set error reporting for debugging (remove in production)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-  // Replace contact@example.com with your real receiving email address
-  $receiving_email_address = 'wanjohizidane14@gmail.com';
+// Check if form was submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-  if( file_exists($php_email_form = '../assets/vendor/php-email-form/php-email-form.php' )) {
-    include( $php_email_form );
-  } else {
-    die( 'Unable to load the "PHP Email Form" Library!');
-  }
+    // Get form data and sanitize
+    $name = isset($_POST['name']) ? trim(strip_tags($_POST['name'])) : '';
+    $email = isset($_POST['email']) ? trim(filter_var($_POST['email'], FILTER_SANITIZE_EMAIL)) : '';
+    $subject = isset($_POST['subject']) ? trim(strip_tags($_POST['subject'])) : '';
+    $message = isset($_POST['message']) ? trim(strip_tags($_POST['message'])) : '';
 
-  $contact = new PHP_Email_Form;
-  $contact->ajax = true;
-  
-  $contact->to = $receiving_email_address;
-  $contact->from_name = $_POST['name'];
-  $contact->from_email = $_POST['email'];
-  $contact->subject = $_POST['subject'];
+    // Validate required fields
+    if (empty($name) || empty($email) || empty($subject) || empty($message)) {
+        echo 'All fields are required';
+        exit;
+    }
 
-  // Uncomment below code if you want to use SMTP to send emails. You need to enter your correct SMTP credentials
-  /*
-  $contact->smtp = array(
-    'host' => 'example.com',
-    'username' => 'example',
-    'password' => 'pass',
-    'port' => '587'
-  );
-  */
+    // Validate email format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo 'Invalid email format';
+        exit;
+    }
 
-  $contact->add_message( $_POST['name'], 'From');
-  $contact->add_message( $_POST['email'], 'Email');
-  isset($_POST['phone']) && $contact->add_message($_POST['phone'], 'Phone');
-  $contact->add_message( $_POST['message'], 'Message', 10);
+    // Email configuration
+    $to = 'wanjohizidane14@gmail.com';
+    $email_subject = "Portfolio Contact: " . $subject;
 
-  echo $contact->send();
+    // Create email headers
+    $headers = "From: " . $email . "\r\n";
+    $headers .= "Reply-To: " . $email . "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+
+    // Create email body
+    $email_body = "
+    <html>
+    <head>
+        <title>New Contact Form Submission</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #FFB800; color: white; padding: 20px; text-align: center; }
+            .content { padding: 20px; background: #f9f9f9; }
+            .field { margin-bottom: 15px; }
+            .label { font-weight: bold; color: #555; }
+            .value { background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h2>New Contact Form Submission</h2>
+                <p>You have received a new message from your portfolio website</p>
+            </div>
+            <div class='content'>
+                <div class='field'>
+                    <div class='label'>Name:</div>
+                    <div class='value'>" . htmlspecialchars($name) . "</div>
+                </div>
+                <div class='field'>
+                    <div class='label'>Email:</div>
+                    <div class='value'>" . htmlspecialchars($email) . "</div>
+                </div>
+                <div class='field'>
+                    <div class='label'>Subject:</div>
+                    <div class='value'>" . htmlspecialchars($subject) . "</div>
+                </div>
+                <div class='field'>
+                    <div class='label'>Message:</div>
+                    <div class='value'>" . nl2br(htmlspecialchars($message)) . "</div>
+                </div>
+                <hr>
+                <p><small>This message was sent from your portfolio contact form on " . date('Y-m-d H:i:s') . "</small></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+
+    // Send email
+    try {
+        if (mail($to, $email_subject, $email_body, $headers)) {
+            // Success response for the JavaScript (expects "OK")
+            echo 'OK';
+        } else {
+            // Error response
+            echo 'Failed to send message. Please try again later.';
+        }
+    } catch (Exception $e) {
+        echo 'An error occurred: ' . $e->getMessage();
+    }
+
+} else {
+    // If not POST request
+    echo 'Method not allowed';
+}
 ?>
