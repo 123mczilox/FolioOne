@@ -82,12 +82,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Send email
     try {
-        if (mail($to, $email_subject, $email_body, $headers)) {
-            // Success response for the JavaScript (expects "OK")
-            echo 'OK';
+        // Check if running on localhost/development
+        $is_localhost = in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '::1']);
+        
+        if ($is_localhost) {
+            // Development mode: Save to file instead of sending
+            $logs_dir = __DIR__ . '/logs';
+            if (!is_dir($logs_dir)) {
+                mkdir($logs_dir, 0755, true);
+            }
+            
+            $log_file = $logs_dir . '/submissions_' . date('Y-m-d') . '.txt';
+            $log_entry = "=== " . date('Y-m-d H:i:s') . " ===\n";
+            $log_entry .= "Name: $name\n";
+            $log_entry .= "Email: $email\n";
+            $log_entry .= "Subject: $subject\n";
+            $log_entry .= "Message:\n$message\n";
+            $log_entry .= "---\n\n";
+            
+            file_put_contents($log_file, $log_entry, FILE_APPEND);
+            echo 'OK'; // Same response for smooth user experience
         } else {
-            // Error response
-            echo 'Failed to send message. Please try again later.';
+            // Production mode: Send actual email
+            if (mail($to, $email_subject, $email_body, $headers)) {
+                echo 'OK';
+            } else {
+                echo 'Failed to send message. Please try again later.';
+            }
         }
     } catch (Exception $e) {
         echo 'An error occurred: ' . $e->getMessage();
